@@ -1,0 +1,314 @@
+CREATE DATABASE RETAIL_DATA_ANALYSIS;
+
+USE RETAIL_DATA_ANALYSIS;
+
+SELECT*FROM Customer;
+
+SELECT*FROM TRANSACTIONS;
+
+SELECT*FROM PROD_CAT_INFO;
+
+
+#DATA PREPARATION AND UNDERSTANDING 
+
+#Q1 
+
+SELECT 'CUSTOMER' AS TABLE_NAME, COUNT(*) AS TOTAL_RECORD FROM Customer
+UNION ALL
+SELECT 'PROD_CAT_INFO' AS TABLE_NAME,COUNT(*) AS TOTAL_RECORD FROM  PROD_CAT_INFO
+UNION ALL
+SELECT 'TRANSACTIONS' AS TABLE_NAME, COUNT(*) AS TOTAL_RECORD FROM TRANSACTIONS
+UNION ALL
+SELECT 'GRAND TOTAL' AS TABLE_NAME, SUM(TOTAL_RECORD) FROM 
+(SELECT 'CUSTOMER' AS TABLE_NAME, COUNT(*) AS TOTAL_RECORD FROM Customer
+UNION ALL
+SELECT 'PROD_CAT_INFO' AS TABLE_NAME,COUNT(*) AS TOTAL_RECORD FROM  PROD_CAT_INFO
+UNION ALL
+SELECT 'TRANSACTIONS' AS TABLE_NAME,COUNT(*) AS TOTAL_RECORD FROM TRANSACTIONS) AS T1;
+
+
+#Q2 
+
+SELECT 
+    'RETURN' AS TRANSACTION, 
+    COUNT(CAST(Qty AS FLOAT)) AS TOTAL_RETURN_TRANSACTION
+FROM 
+    (SELECT Qty 
+     FROM TRANSACTIONS 
+     WHERE Qty < 0) AS T1;
+
+
+#Q3 
+
+SELECT *,
+       TRY_CONVERT(DATE, DOB, 105) AS NEW_FORMAT_DOB
+FROM Customer;
+
+
+SELECT tran_date
+FROM TRANSACTIONS
+WHERE TRY_CONVERT(DATE, tran_date, 105) IS NULL;
+
+#Q4 
+
+SELECT 
+    MIN(STR_TO_DATE(tran_date, '%d-%m-%Y')) AS BEGIN_TRANSACTION_DATE,
+    MAX(STR_TO_DATE(tran_date, '%d-%m-%Y')) AS END_TRANSACTION_DATE,
+    DATEDIFF(MAX(STR_TO_DATE(tran_date, '%d-%m-%Y')), MIN(STR_TO_DATE(tran_date, '%d-%m-%Y'))) AS NUMBER_OF_DAYS,
+    TIMESTAMPDIFF(MONTH, MIN(STR_TO_DATE(tran_date, '%d-%m-%Y')), MAX(STR_TO_DATE(tran_date, '%d-%m-%Y'))) AS NUMBER_OF_MONTHS,
+    TIMESTAMPDIFF(YEAR, MIN(STR_TO_DATE(tran_date, '%d-%m-%Y')), MAX(STR_TO_DATE(tran_date, '%d-%m-%Y'))) AS NUMBER_OF_YEAR
+FROM 
+    TRANSACTIONS
+WHERE 
+    STR_TO_DATE(tran_date, '%d-%m-%Y') IS NOT NULL;
+
+
+#Q5 
+
+SELECT PROD_CAT FROM 
+PROD_CAT_INFO
+WHERE PROD_SUBCAT = 'DIY';
+
+
+
+
+#DATA ANALYSIS 
+
+
+#Q1 
+
+SELECT 
+    STORE_TYPE AS CHANNELS, 
+    COUNT(STORE_TYPE) AS TOTAL_TRANSACTIONS
+FROM TRANSACTIONS
+GROUP BY STORE_TYPE
+ORDER BY TOTAL_TRANSACTIONS DESC
+LIMIT 1;
+
+
+#Q2 
+
+SELECT 'MALE' AS GENDER, COUNT(GENDER) AS TOTAL_COUNT
+FROM Customer
+WHERE Gender='M'
+UNION ALL 
+SELECT 'FEMALE' AS GENDER, COUNT(GENDER) AS TOTAL_COUNT
+FROM Customer
+WHERE Gender='F';
+
+
+#Q3 
+
+SELECT 
+    city_code, 
+    COUNT(CITY_CODE) AS MAX_CUSTOMER
+FROM Customer
+GROUP BY city_code
+ORDER BY MAX_CUSTOMER DESC
+LIMIT 1;
+
+#Q4 
+SELECT 'BOOKS' AS CATEGORY, COUNT(PROD_SUBCAT) AS COUNT_OF_SUB_CAT_OF_BOOK
+FROM 
+PROD_CAT_INFO
+WHERE PROD_CAT LIKE 'BOO%';
+
+
+#Q5 
+ 
+SELECT 
+    TA.prod_cat_code AS PRODUCT_CATEGORY_CODE, 
+    PCI.prod_cat AS PRODUCT_CATEGORY, 
+    SUM(CAST(TA.Qty AS FLOAT)) AS MAX_QUANTITY
+FROM TRANSACTIONS AS TA 
+LEFT JOIN PROD_CAT_INFO AS PCI 
+    ON TA.prod_cat_code = PCI.PROD_CAT_CODE 
+    AND TA.prod_subcat_code = PCI.prod_sub_cat_code
+GROUP BY TA.prod_cat_code, PCI.prod_cat
+ORDER BY MAX_QUANTITY DESC
+LIMIT 1;
+
+
+
+
+#Q6 
+SELECT PCI.prod_cat AS PRODUCT_CATEGORY, SUM(CAST(TOTAL_AMT AS FLOAT)) AS TOTAL_REVENUE FROM 
+TRANSACTIONS AS TR
+INNER JOIN prod_cat_info AS PCI
+ON TR.prod_cat_code=PCI.prod_cat_code AND TR.prod_subcat_code=PCI.prod_sub_cat_code
+WHERE PCI.prod_cat = 'BOOKS' OR PCI.prod_cat= 'ELECTRONICS' 
+GROUP BY PCI.prod_cat;
+
+
+
+#Q7 
+
+SELECT 
+    CUST_ID, 
+    COUNT(*) AS TRANSACTION_COUNT
+FROM 
+    Transactions
+WHERE 
+    QTY > 0  
+    AND total_amt IS NOT NULL  
+    AND total_amt != ''  
+    AND CUST_ID IS NOT NULL
+GROUP BY 
+    CUST_ID
+ORDER BY TRANSACTION_COUNT DESC
+LIMIT 10;
+ 
+
+
+
+
+
+#Q8 
+SELECT 
+    CUST_ID, 
+    COUNT(*) AS TRANSACTION_COUNT
+FROM 
+    Transactions
+WHERE 
+    QTY > 0  
+    AND total_amt IS NOT NULL  
+    AND total_amt != ''  
+    AND CUST_ID IS NOT NULL
+GROUP BY 
+    CUST_ID
+ORDER BY TRANSACTION_COUNT DESC
+LIMIT 10;
+
+
+
+
+#Q9 
+
+SELECT GENDER, PROD_CAT, PROD_SUBCAT,SUM(CAST(TOTAL_AMT AS FLOAT)) 
+AS TOTAL_REVENUE FROM Customer AS C
+LEFT JOIN Transactions AS TR
+ON C.customer_Id=TR.cust_id 
+INNER JOIN prod_cat_info AS PCI 
+ON TR.prod_cat_code=PCI.prod_cat_code AND TR.prod_subcat_code=PCI.prod_sub_cat_code
+WHERE GENDER = 'M' AND PROD_CAT='ELECTRONICS' 
+GROUP BY GENDER, PROD_CAT, PROD_SUBCAT;
+
+
+
+#Q10 
+
+SELECT 
+    CUST_ID, 
+    COUNT(*) AS TRANSACTION_COUNT
+FROM 
+    Transactions
+WHERE 
+    QTY > 0  
+    AND total_amt IS NOT NULL  
+    AND total_amt != ''  
+    AND CUST_ID IS NOT NULL
+GROUP BY 
+    CUST_ID
+ORDER BY TRANSACTION_COUNT DESC
+LIMIT 10;
+
+
+
+#Q11 
+
+SELECT 
+    CUST_ID, 
+    COUNT(*) AS TRANSACTION_COUNT
+FROM 
+    Transactions
+WHERE 
+    QTY > 0  
+    AND total_amt IS NOT NULL  
+    AND CUST_ID IS NOT NULL
+GROUP BY 
+    CUST_ID
+ORDER BY TRANSACTION_COUNT DESC
+LIMIT 10;
+
+
+
+
+#Q12 
+
+SELECT 
+    TR.prod_cat_code, 
+    TR.prod_subcat_code, 
+    TR.Qty, 
+    TR.tran_date, 
+    TR.TOTAL_AMT,
+    PCI.prod_cat
+FROM 
+    Transactions AS TR
+LEFT JOIN 
+    prod_cat_info AS PCI
+    ON TR.prod_cat_code = PCI.prod_cat_code 
+    AND TR.prod_subcat_code = PCI.prod_sub_cat_code
+ORDER BY 
+    TR.tran_date;
+
+
+
+
+
+
+
+
+#Q13 
+SELECT 
+    Store_type, 
+    SUM(CAST(TOTAL_AMT AS FLOAT)) AS TOTAL_SALE_AMT,
+    COUNT(prod_cat) AS QUANTITY_OF_SALE
+FROM 
+    Transactions AS TR
+INNER JOIN 
+    prod_cat_info AS PCI
+    ON TR.prod_cat_code = PCI.prod_cat_code 
+    AND TR.prod_subcat_code = PCI.prod_sub_cat_code
+GROUP BY 
+    Store_type
+ORDER BY 
+    TOTAL_SALE_AMT DESC, QUANTITY_OF_SALE DESC
+LIMIT 1;
+
+
+
+
+#Q14 
+
+SELECT 
+prod_cat AS PRODUCT_CATEGORY, AVG(CAST(TOTAL_AMT AS FLOAT)) AS SALES_MORE_THAN_AVG
+FROM
+Transactions AS TR
+INNER JOIN prod_cat_info AS PCI
+ON TR.prod_cat_code=PCI.prod_cat_code AND TR.prod_subcat_code=PCI.prod_sub_cat_code
+GROUP BY prod_cat
+HAVING AVG(CAST(TOTAL_AMT AS FLOAT)) > 
+(SELECT AVG(CAST(TOTAL_AMT AS FLOAT)) FROM Transactions);
+
+
+
+#Q15 
+
+SELECT * 
+FROM (
+    SELECT 
+        ROW_NUMBER() OVER (ORDER BY COUNT(prod_cat) DESC) AS RNUM,
+        prod_cat, 
+        prod_subcat,
+        AVG(CAST(TOTAL_AMT AS FLOAT)) AS AVG_SALE, 
+        SUM(CAST(TOTAL_AMT AS FLOAT)) AS TOTAL_SALE,
+        COUNT(prod_cat) AS TOTAL_QUANTITY
+    FROM Transactions AS TR
+    INNER JOIN prod_cat_info AS PCI
+        ON TR.prod_cat_code = PCI.prod_cat_code 
+        AND TR.prod_subcat_code = PCI.prod_sub_cat_code
+    GROUP BY prod_cat, prod_subcat
+) AS T1
+WHERE RNUM BETWEEN 1 AND 5;
+
+
